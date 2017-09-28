@@ -94,6 +94,56 @@ Resources:
           ln -s /root/.local/bin/aws /usr/bin/aws
           aws configure set output json
           aws configure set region ${AWS::Region}
+          cat << 'EOF' > /root/ebs.sh
+          #!/bin/bash
+          # accepts parameters to backup or delete volumes
+          # if delete, accepts age parameter to determine what to delete
+          ACTION=$1
+          AGE=$2
+          if [ -z $ACTION ];
+          then
+            echo "Usage $1: Define ACTION of backup or delete"
+            exit 1
+          fi
+          if [ "$ACTION" = "delete" ] && [ -z $AGE ];
+          then
+            echo "Please enter the age of backups you would like to delete"
+            exit 1
+          fi
+          function backup_ebs () {
+            for volume in $(aws ec2 describe-volumes | jq .Volumes[].VolumeId | sed 's/\"//g')
+            do
+              echo Creating snapshot for $volume
+              SNAPSHOT_ID=$(aws ec2 create-snapshot --volume-id $volume --description "automated-ebs-backup-script" | jq .SnapshotId | sed 's/\"//g')
+              aws ec2 create-tags --resources $SNAPSHOT_ID --tags 'Key="Name",Value="Automated EBS Snapshot"'
+            done
+          }
+          function delete_snapshots () {
+            for snapshot in $(aws ec2 describe-snapshots --filters Name=description,Values=automated-ebs-backup-script | jq .Snapshots[].SnapshotId | sed 's/\"//g')
+            do
+              SNAPSHOTDATE=$(aws ec2 describe-snapshots --filters Name=snapshot-id,Values=$snapshot | jq .Snapshots[].StartTime | cut -d T -f1 | sed 's/\"//g')
+              STARTDATE=$(date +%s)
+              ENDDATE=$(date -d $SNAPSHOTDATE +%s)
+              INTERVAL=$[ (STARTDATE - ENDDATE) / (60*60*24) ]
+              if (( $INTERVAL >= $AGE ));
+              then
+                echo "Deleting snapshot $snapshot"
+                aws ec2 delete-snapshot --snapshot-id $snapshot
+              fi
+            done
+          }
+          case $ACTION in
+            "backup")
+              backup_ebs
+            ;;
+            "delete")
+              delete_snapshots
+            ;;
+          esac
+          EOF
+          chmod 744 /root/ebs.sh
+          echo "0 0 * * * root /root/ebs.sh backup" >> /etc/crontab
+          echo "0 0 * * * root /root/ebs.sh delete 14" >> /etc/crontab
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
