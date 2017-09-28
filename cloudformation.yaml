@@ -1,12 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: TODO
+Description: Provisions an EC2 instance in an Auto Scaling Group bootstrapped to snapshot EBS volumes once a day and retain snapshots for 14 days
 Parameters:
   InstanceType:
     Description: Desired instance type for EC2 instance used for EBS management cron jobs
     Type: String
     Default: t2.micro
   CentOS7AmiId:
-    Description: ID of preferred AMI (UserData assumes CentOS7)
+    Description: ID of preferred AMI (UserData assumes CentOS 7)
     Type: String
   SshKey:
     Description: The name of the key pair to be used to SSH into EC2 instance
@@ -81,10 +81,19 @@ Resources:
       KeyName: !Ref SshKey
       SecurityGroups: 
         - Ref: SecurityGroupId
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            DeleteOnTermination: true
       UserData:
         Fn::Base64: !Sub |     # No more Fn::Join needed
           #!/bin/bash
-          echo "Testing Userdata" > hello.txt
+          yum install epel-release -y
+          yum install jq python-pip -y
+          pip install --upgrade --user awscli
+          ln -s /root/.local/bin/aws /usr/bin/aws
+          aws configure set output json
+          aws configure set region ${AWS::Region}
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
