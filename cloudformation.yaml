@@ -22,6 +22,10 @@ Parameters:
     Default: 14
     MinValue: 1
     MaxValue: 365
+  EbsBackupCronExpression:
+    Description: Cron expression for EBS backup schedule
+    Type: String
+    Default: "0 0 * * *"
 Resources:
   EbsBkupRole: 
     Type: "AWS::IAM::Role"
@@ -148,7 +152,7 @@ Resources:
           esac
           EOF
           chmod 744 /root/ebs.sh
-          echo "0 0 * * * root /root/ebs.sh backup" >> /etc/crontab
+          echo "${EbsBackupCronExpression} root /root/ebs.sh backup" >> /etc/crontab
           echo "0 0 * * * root /root/ebs.sh delete ${SnapshotRetentionDays}" >> /etc/crontab
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
