@@ -1,0 +1,12 @@
+#!/bin/bash
+
+aws cloudformation create-stack \
+  --stack-name AutoEbsBackupStack \
+  --template-body file://cloudformation.yaml \
+  --profile default \
+  --region us-east-1 \
+  --parameters \
+    ParameterKey=CentOS7AmiId,ParameterValue=ami-46c1b650 \
+    ParameterKey=SshKey,ParameterValue=myPublicKey \
+    ParameterKey=SecurityGroupId,ParameterValue=sg-12345678 \
+  --capabilities CAPABILITY_NAMED_IAM

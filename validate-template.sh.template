@@ -1,0 +1,6 @@
+#!/bin/bash
+
+aws cloudformation validate-template \
+  --template-body file://cloudformation.yaml \
+  --profile default \
+  --region us-east-1

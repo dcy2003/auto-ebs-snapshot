@@ -1,0 +1,6 @@
+#!/bin/bash
+
+aws cloudformation delete-stack \
+  --stack-name AutoEbsBackupStack \
+  --profile default \
+  --region us-east-1

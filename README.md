@@ -28,7 +28,7 @@ There are many solutions to this problem availble on the Internet.  Most leverag
 
 ## Usage
 
-The `scripts` directory contains three helper script templates:
+Three helper script templates are provided.  Drop the `.template` suffix from each and make the appropriate edits for your environment and configuration.
 
 - `validate-template.sh`
   - helper script to validate the CloudFormation template
