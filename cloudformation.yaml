@@ -16,6 +16,12 @@ Parameters:
     Description: The ID of an existing security group in the current region
     Type: AWS::EC2::SecurityGroup::Id
     ConstraintDescription: Must be the ID of an existing VPC in the format sg-xxxxxxxx
+  SnapshotRetentionDays:
+    Description: The number of days to retain EBS snapshots
+    Type: Number
+    Default: 14
+    MinValue: 1
+    MaxValue: 365
 Resources:
   EbsBkupRole: 
     Type: "AWS::IAM::Role"
@@ -143,7 +149,7 @@ Resources:
           EOF
           chmod 744 /root/ebs.sh
           echo "0 0 * * * root /root/ebs.sh backup" >> /etc/crontab
-          echo "0 0 * * * root /root/ebs.sh delete 14" >> /etc/crontab
+          echo "0 0 * * * root /root/ebs.sh delete ${SnapshotRetentionDays}" >> /etc/crontab
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:

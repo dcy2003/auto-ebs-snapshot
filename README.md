@@ -37,6 +37,6 @@ The `scripts` directory contains three helper script templates:
 - `create-stack.sh`
   - helper script to create the CloudFormation stack
   - be sure to substitute the appropriate values for the `profile`, `region`, and `stack-name` options
-  - be sure to pass in appropriate values for the `SshKey`, `SecurityGroupId`, `CentOS7AmiId`, and `InstanceType` parameters
+  - be sure to pass in appropriate values for the `SshKey`, `SecurityGroupId`, `CentOS7AmiId`, `InstanceType` and `SnapshotRetentionDays` parameters
 - `delete-stack.sh`
   - helper script to delete the CloudFormation stack and cleanup all resources that were created
