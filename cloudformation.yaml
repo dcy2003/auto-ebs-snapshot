@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Description: Provisions an EC2 instance in an Auto Scaling Group bootstrapped to snapshot EBS volumes once a day and retain snapshots for 14 days
 Parameters:
   InstanceType:
@@ -10,7 +10,7 @@ Parameters:
     Type: String
   SshKey:
     Description: The name of the key pair to be used to SSH into EC2 instance
-    Type: "AWS::EC2::KeyPair::KeyName"
+    Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: Must be the name of an existing EC2 KeyPair
   SecurityGroupId:
     Description: The ID of an existing security group in the current region
@@ -28,69 +28,69 @@ Parameters:
     Default: "0 0 * * *"
 Resources:
   EbsBkupRole: 
-    Type: "AWS::IAM::Role"
+    Type: AWS::IAM::Role
     Properties: 
       AssumeRolePolicyDocument: 
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement: 
-          - Effect: "Allow"
+          - Effect: Allow
             Principal: 
               Service: 
-                - "ec2.amazonaws.com"
+                - ec2.amazonaws.com
             Action: 
-              - "sts:AssumeRole"
-      Path: "/"
+              - sts:AssumeRole
+      Path: /
   EbsBkupPolicy: 
-    Type: "AWS::IAM::Policy"
+    Type: AWS::IAM::Policy
     Properties: 
-      PolicyName: "EbsBkupPolicy"
+      PolicyName: EbsBkupPolicy
       PolicyDocument: 
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement: 
-          - Effect: "Allow"
+          - Effect: Allow
             Action: 
-              - "ec2:DescribeVolumes"
-              - "ec2:DescribeSnapshots"
-              - "ec2:CreateSnapshot"
-              - "ec2:DeleteSnapshot"
+              - ec2:DescribeVolumes
+              - ec2:DescribeSnapshots
+              - ec2:CreateSnapshot
+              - ec2:DeleteSnapshot
             # Note: ^ these actions ^  do NOT yet support resource-level permissions 
             # See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ec2-api-permissions.html#ec2-api-unsupported-resource-permissions
             # For now we must use a resource value of "*" due to the AWS limitation noted above
             # if/when AWS supports resource-level permissions for these actions,
             # we can then construct ARN-level resource blocks like the CreateTags example below
             Resource: "*" 
-          - Effect: "Allow"
+          - Effect: Allow
             Action:
-              - "ec2:CreateTags"
+              - ec2:CreateTags
             # The ec2:CreateTags action DOES support resource-level permissions
             # See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/ec2-api-permissions.html#ec2-api-supported-resource-permissions
             # This example shows how an ARN pattern can be dynamically constructed for the resource block
             Resource:
-              Fn::Join:
+              !Join
                 - ":"
                 - - "arn"
                   - "aws"
                   - "ec2"
-                  - Ref: "AWS::Region"
+                  - !Ref AWS::Region
                   - ":snapshot/*"
       Roles: 
-        - Ref: "EbsBkupRole"
+        - Ref: EbsBkupRole
   EbsBkupInstanceProfile: 
-    Type: "AWS::IAM::InstanceProfile"
+    Type: AWS::IAM::InstanceProfile
     Properties: 
-      Path: "/"
+      Path: /
       Roles: 
-        - Ref: "EbsBkupRole"
+        - !Ref EbsBkupRole
   LaunchConfiguration:
-    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       IamInstanceProfile: !GetAtt EbsBkupInstanceProfile.Arn
       ImageId: !Ref CentOS7AmiId
-      InstanceMonitoring: "false"
+      InstanceMonitoring: false
       InstanceType: !Ref InstanceType
       KeyName: !Ref SshKey
       SecurityGroups: 
-        - Ref: SecurityGroupId
+        - !Ref SecurityGroupId
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -155,15 +155,15 @@ Resources:
           echo "${EbsBackupCronExpression} root /root/ebs.sh backup" >> /etc/crontab
           echo "0 0 * * * root /root/ebs.sh delete ${SnapshotRetentionDays}" >> /etc/crontab
   AutoScalingGroup:
-    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AvailabilityZones:
         Fn::GetAZs:
-          Ref: "AWS::Region"
+          !Ref AWS::Region
       LaunchConfigurationName: !Ref LaunchConfiguration
-      DesiredCapacity: "1"
-      MaxSize: "1"
-      MinSize: "1"
+      DesiredCapacity: 1
+      MaxSize: 1
+      MinSize: 1
       Tags:
         - Key: Name
           Value: EBS Backup HA Instance
@@ -175,20 +175,20 @@ Outputs:
   LaunchConfigurationId:
     Description: The ID of the Launch Configuration
     Value:
-      Ref: "LaunchConfiguration"
+      Ref: LaunchConfiguration
   AutoScalingGroupId:
     Description: The ID of the Auto Scaling Group
     Value:
-      Ref: "AutoScalingGroup"
+      Ref: AutoScalingGroup
   EbsBkupRoleId:
     Description: The ID of the Role
     Value:
-      Ref: "EbsBkupRole"
+      Ref: EbsBkupRole
   EbsBkupPolicyId:
     Description: The ID of the Policy
     Value:
-      Ref: "EbsBkupPolicy"
+      Ref: EbsBkupPolicy
   EbsBkupInstanceProfileId:
     Description: The ID of the Instance Profile
     Value:
-      Ref: "EbsBkupInstanceProfile"
+      Ref: EbsBkupInstanceProfile
